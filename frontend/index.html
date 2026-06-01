@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitoreo Rack</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Rack 01</p>
+        <h1>Monitoreo Rack</h1>
+      </div>
+      <div class="header-actions">
+        <label class="api-field">
+          <span>API</span>
+          <input id="apiBaseInput" type="url" value="http://127.0.0.1:8000" spellcheck="false">
+        </label>
+        <button id="saveApiButton" type="button">Guardar</button>
+        <button id="refreshButton" type="button">Actualizar</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="status-grid" aria-label="Estado principal">
+        <article class="stat" data-state="neutral">
+          <span>Estado</span>
+          <strong id="statusValue">--</strong>
+          <small id="reasonValue">--</small>
+        </article>
+        <article class="stat" data-state="neutral">
+          <span>Modo</span>
+          <strong id="modeValue">--</strong>
+          <small id="modeHint">--</small>
+        </article>
+        <article class="stat" data-state="neutral">
+          <span>Red</span>
+          <strong id="networkValue">--</strong>
+          <small id="lastWillValue">--</small>
+        </article>
+        <article class="stat" data-state="neutral">
+          <span>Puerta</span>
+          <strong id="doorValue">--</strong>
+          <small id="doorSecurityValue">--</small>
+        </article>
+      </section>
+
+      <section class="panel summary-panel">
+        <div class="panel-head">
+          <h2>Resumen</h2>
+          <span id="lastUpdateValue">Sin datos</span>
+        </div>
+        <div class="data-grid">
+          <div class="data-row">
+            <span>Temperatura</span>
+            <strong id="temperatureValue">--</strong>
+          </div>
+          <div class="data-row">
+            <span>Humedad</span>
+            <strong id="humidityValue">--</strong>
+          </div>
+          <div class="data-row">
+            <span>Posicion</span>
+            <strong id="positionValue">--</strong>
+          </div>
+          <div class="data-row">
+            <span>Acceso</span>
+            <strong id="accessValue">--</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel mode-panel">
+        <div class="panel-head">
+          <h2>Modo</h2>
+          <span id="modeCommandStatus">Listo</span>
+        </div>
+        <div class="segmented" id="modeButtons">
+          <button type="button" data-mode="standard">Estandar</button>
+          <button type="button" data-mode="energy_saving">Ahorro</button>
+          <button type="button" data-mode="performance">Potencia</button>
+        </div>
+        <div class="thresholds" id="modeDetails">
+          <div>
+            <span>Temp optima</span>
+            <strong>--</strong>
+          </div>
+          <div>
+            <span>Temp critica</span>
+            <strong>--</strong>
+          </div>
+          <div>
+            <span>Fan base</span>
+            <strong>--</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel door-panel">
+        <div class="panel-head">
+          <h2>Desbloquear puerta</h2>
+          <span id="doorLockValue">--</span>
+        </div>
+        <div class="control-stack">
+          <div class="field-row">
+            <label>
+              <span>Usuario</span>
+              <input id="unlockUsername" type="text" autocomplete="username" placeholder="DianaMena">
+            </label>
+            <label>
+              <span>Contrasena</span>
+              <input id="unlockPassword" type="password" autocomplete="current-password" placeholder="RackSeguro2026!">
+            </label>
+          </div>
+          <div class="button-row">
+            <button id="unlockButton" type="button">Desbloquear</button>
+            <button id="lockButton" type="button" class="secondary">Cerrar puerta</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fan-panel">
+        <div class="panel-head">
+          <h2>Ventilador</h2>
+          <span id="fanModeValue">--</span>
+        </div>
+        <div class="fan-readout">
+          <strong id="fanPowerValue">--</strong>
+          <span>potencia</span>
+        </div>
+        <label class="range-field">
+          <span>Manual</span>
+          <input id="fanPowerInput" type="range" min="0" max="100" step="5" value="50">
+          <output id="fanPowerOutput">50%</output>
+        </label>
+        <div class="button-row">
+          <button id="fanManualButton" type="button">Aplicar</button>
+          <button id="fanAutoButton" type="button" class="secondary">Automatico</button>
+        </div>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="panel-head">
+          <h2>Historial</h2>
+          <span>Grafana</span>
+        </div>
+        <div class="link-row">
+          <a id="grafanaLink" href="http://localhost:3000/d/monitoreo-rack-servidores" target="_blank" rel="noreferrer">
+            Abrir dashboard
+          </a>
+          <a id="apiDocsLink" href="http://127.0.0.1:8000/docs" target="_blank" rel="noreferrer">
+            API docs
+          </a>
+        </div>
+        <div class="event-log" id="eventLog" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
