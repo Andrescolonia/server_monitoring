@@ -41,3 +41,25 @@ python main.py
 ```
 
 El script imprime cada mensaje recibido y confirma si fue escrito en InfluxDB.
+
+## Ejecucion Con Docker
+
+Construir la imagen desde esta carpeta:
+
+```bash
+docker build -t monitor-rack-bridge .
+```
+
+Ejecutar usando el archivo `.env` local:
+
+```bash
+docker run --rm --env-file .env monitor-rack-bridge
+```
+
+El contenedor no expone puertos porque es un worker: se conecta a HiveMQ, escucha los topicos MQTT y escribe en InfluxDB.
+
+## Nota Para Azure
+
+En Azure Container Apps este servicio debe ejecutarse como proceso continuo, con minimo `1` replica. Si escala a cero, deja de escuchar MQTT.
+
+Las variables de `.env` deben configurarse como secretos o variables de entorno del servicio, no copiarse dentro de la imagen.

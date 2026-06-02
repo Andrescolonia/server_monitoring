@@ -52,6 +52,7 @@ constexpr bool MQTT_ALLOW_INSECURE_TLS = true;
 #define ENABLE_ULTRASONIC_TEST 0
 #define ENABLE_DHT_TEST 0
 #define ENABLE_MPU_TEST 0
+#define ENABLE_SERVO_TEST 0
 
 // Sensor DHT. Cambiar a 11 si el sensor instalado es DHT11.
 constexpr uint8_t DHT_TYPE = 22;
@@ -80,6 +81,18 @@ constexpr uint8_t PIN_LED_G = 26;
 constexpr uint8_t PIN_LED_B = 27;
 constexpr bool LED_COMMON_ANODE = true;
 
+// Servo para bloqueo interno de puerta.
+// Alimentar el servo con fuente externa de 5V y unir GND de la fuente con GND del ESP32.
+constexpr uint8_t PIN_SERVO_LOCK = 14;
+constexpr uint8_t SERVO_PWM_CHANNEL = 4;
+constexpr uint32_t SERVO_PWM_FREQ_HZ = 50;
+constexpr uint8_t SERVO_PWM_RESOLUTION_BITS = 16;
+constexpr uint16_t SERVO_MIN_PULSE_US = 500;
+constexpr uint16_t SERVO_MAX_PULSE_US = 2400;
+constexpr uint8_t SERVO_LOCK_CLOSED_ANGLE = 180;
+constexpr uint8_t SERVO_LOCK_OPEN_ANGLE = 90;
+constexpr uint32_t SERVO_LOCK_TEST_STEP_MS = 3000;
+
 // Intervalos.
 constexpr uint32_t TELEMETRY_INTERVAL_MS = 5000;
 constexpr uint32_t LED_TEST_STEP_MS = 500;
@@ -97,7 +110,7 @@ constexpr float TILT_CRITICAL_DEG = 15.0F;
 constexpr float VIBRATION_WARNING_G = 0.12F;
 constexpr float VIBRATION_CRITICAL_G = 0.25F;
 
-// Actuadores simulados para la fase API REST y frontend.
+// Actuadores para la fase API REST y frontend.
 constexpr uint32_t DOOR_LOCK_SIMULATION_MS = 1200;
 constexpr uint32_t DOOR_UNLOCK_WINDOW_MS = 10000;
 

@@ -1,0 +1,22 @@
+services:
+  api:
+    image: monitor-rack-api:latest
+    build:
+      context: .
+      dockerfile: api-rest/Dockerfile
+    container_name: monitor-rack-api
+    volumes:
+      - ./api-rest/.env:/app/.env:ro
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+  bridge:
+    image: monitor-rack-bridge:latest
+    build:
+      context: bridge-python
+      dockerfile: Dockerfile
+    container_name: monitor-rack-bridge
+    volumes:
+      - ./bridge-python/.env:/app/.env:ro
+    restart: unless-stopped

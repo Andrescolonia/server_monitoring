@@ -1,12 +1,15 @@
 import ssl
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from influxdb_client import InfluxDBClient
 from pydantic import BaseModel, Field
 
@@ -14,10 +17,18 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 
+APP_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = APP_DIR / "frontend"
+if not FRONTEND_DIR.exists():
+    FRONTEND_DIR = APP_DIR.parent / "frontend"
+
+
 def env(name: str, default: str | None = None, required: bool = False) -> str:
     import os
 
-    value = os.getenv(name, default)
+    value = os.getenv(name)
+    if value is None or value == "":
+        value = default
     if required and not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value or ""
@@ -109,7 +120,14 @@ from(bucket: "{self.config.influx_bucket}")
   |> filter(fn: (r) => r._measurement == "{measurement}" and r._field == "{field}" and r.device_id == "{self.config.device_id}"{sensor_filter})
   |> last()
 '''
-        tables = self.query_api.query(org=self.config.influx_org, query=flux)
+        try:
+            tables = self.query_api.query(org=self.config.influx_org, query=flux)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"InfluxDB query failed for {measurement}.{field}: {exc}",
+            ) from exc
+
         for table in tables:
             for record in table.records:
                 return {
@@ -303,3 +321,30 @@ def fan_manual(request: FanManualRequest) -> dict[str, Any]:
     payload = str(request.power_pct)
     command = publish_command(config, "commands/fan/manual", payload)
     return {"accepted": True, "fan_mode": "manual", "fan_power_pct": request.power_pct, "command": command}
+
+
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR), name="frontend-assets")
+
+
+@app.get("/", include_in_schema=False)
+def frontend_index() -> FileResponse:
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Frontend not bundled")
+    return FileResponse(index_path)
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def frontend_fallback(path: str) -> FileResponse:
+    if path.startswith("api/") or path == "docs" or path.startswith("openapi"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    requested_path = FRONTEND_DIR / path
+    if requested_path.is_file():
+        return FileResponse(requested_path)
+
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Frontend not bundled")
+    return FileResponse(index_path)

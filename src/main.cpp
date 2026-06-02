@@ -2,7 +2,69 @@
 
 #include "config.h"
 
-#if ENABLE_MPU_TEST
+#if ENABLE_SERVO_TEST
+
+constexpr uint32_t SERVO_PERIOD_US = 1000000UL / SERVO_PWM_FREQ_HZ;
+constexpr uint32_t SERVO_MAX_DUTY = (1UL << SERVO_PWM_RESOLUTION_BITS) - 1;
+
+uint32_t lastServoTestMs = 0;
+bool servoTestClosed = true;
+
+uint16_t angleToPulseUs(uint8_t angleDeg) {
+  const uint8_t safeAngle = constrain(angleDeg, 0, 180);
+  return SERVO_MIN_PULSE_US +
+         ((static_cast<uint32_t>(SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US) * safeAngle) / 180);
+}
+
+void writeServoState(const char *state, uint8_t angleDeg) {
+  const uint16_t pulseUs = angleToPulseUs(angleDeg);
+  const uint32_t duty = (static_cast<uint32_t>(pulseUs) * SERVO_MAX_DUTY) / SERVO_PERIOD_US;
+
+  ledcWrite(SERVO_PWM_CHANNEL, duty);
+
+  Serial.print(F("Servo bloqueo -> estado: "));
+  Serial.print(state);
+  Serial.print(F(" | angulo: "));
+  Serial.print(angleDeg);
+  Serial.print(F(" deg | pulso: "));
+  Serial.print(pulseUs);
+  Serial.println(F(" us"));
+}
+
+void setup() {
+  Serial.begin(SERIAL_BAUD);
+  delay(1000);
+
+  ledcSetup(SERVO_PWM_CHANNEL, SERVO_PWM_FREQ_HZ, SERVO_PWM_RESOLUTION_BITS);
+  ledcAttachPin(PIN_SERVO_LOCK, SERVO_PWM_CHANNEL);
+
+  Serial.println(F("Prueba servo de bloqueo"));
+  Serial.println(F("Senal: GPIO 14 | VCC servo: 5V externo | GND servo: GND comun"));
+  Serial.println(F("Alternando entre CERRADO y ABIERTO cada 3 segundos."));
+  Serial.println(F("CERRADO: brazo horizontal como en la foto."));
+  Serial.println(F("ABIERTO: brazo hacia arriba. Si queda al lado contrario, cambiar SERVO_LOCK_OPEN_ANGLE a 180."));
+
+  writeServoState("cerrado", SERVO_LOCK_CLOSED_ANGLE);
+}
+
+void loop() {
+  const uint32_t now = millis();
+  if (now - lastServoTestMs < SERVO_LOCK_TEST_STEP_MS) {
+    return;
+  }
+
+  lastServoTestMs = now;
+  servoTestClosed = !servoTestClosed;
+
+  if (servoTestClosed) {
+    writeServoState("cerrado", SERVO_LOCK_CLOSED_ANGLE);
+    return;
+  }
+
+  writeServoState("abierto", SERVO_LOCK_OPEN_ANGLE);
+}
+
+#elif ENABLE_MPU_TEST
 
 #include "sensors.h"
 

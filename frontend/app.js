@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "http://127.0.0.1:8000";
+const DEFAULT_API_BASE = window.location.port === "5173" ? "http://127.0.0.1:8000" : window.location.origin;
 const STORAGE_KEY = "rack_api_base";
 const GRAFANA_URL = "http://localhost:3000/d/monitoreo-rack-servidores";
 
@@ -117,7 +117,14 @@ async function request(path, options = {}) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { detail: text };
+    }
+  }
   if (!response.ok) {
     throw new Error(data.detail || `HTTP ${response.status}`);
   }

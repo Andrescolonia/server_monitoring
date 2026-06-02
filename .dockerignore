@@ -1,0 +1,11 @@
+**/.env
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/*.log
+.pio/
+.vscode/
+include/secrets.h
+frontend/server.out.log
+frontend/server.err.log
+frontend/server.cmd.log

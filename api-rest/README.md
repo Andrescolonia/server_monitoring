@@ -41,6 +41,40 @@ Documentacion interactiva:
 http://127.0.0.1:8000/docs
 ```
 
+## Ejecucion Con Docker
+
+Construir la imagen desde la raiz del proyecto. Esta imagen incluye la API y el frontend estatico:
+
+```bash
+docker build -f api-rest/Dockerfile -t monitor-rack-api .
+```
+
+Ejecutar usando el `.env` local de la API:
+
+```bash
+docker run --rm --env-file api-rest/.env -p 8000:8000 monitor-rack-api
+```
+
+Si el puerto `8000` ya esta ocupado, usar otro puerto local:
+
+```bash
+docker run --rm --env-file api-rest/.env -p 8001:8000 monitor-rack-api
+```
+
+En cloud, configurar las variables de entorno como secretos del servicio. No copiar `.env` dentro de la imagen.
+
+El frontend queda servido por la misma API:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Para un frontend desplegado en Azure, agregar su URL en:
+
+```text
+API_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://TU_FRONTEND.azurestaticapps.net
+```
+
 ## Endpoints
 
 | Metodo | Ruta | Uso |

@@ -11,9 +11,46 @@ uint32_t doorTransitionStartedMs = 0;
 uint32_t doorUnlockExpiresMs = 0;
 uint8_t lastPrintedFanPowerPct = 255;
 FanMode lastPrintedFanMode = FanMode::Auto;
+constexpr uint32_t SERVO_PERIOD_US = 1000000UL / SERVO_PWM_FREQ_HZ;
+constexpr uint32_t SERVO_MAX_DUTY = (1UL << SERVO_PWM_RESOLUTION_BITS) - 1;
 
 bool unlockWindowActive(uint32_t now) {
   return doorUnlockExpiresMs != 0 && static_cast<int32_t>(doorUnlockExpiresMs - now) > 0;
+}
+
+uint16_t angleToPulseUs(uint8_t angleDeg) {
+  const uint8_t safeAngle = constrain(angleDeg, 0, 180);
+  return SERVO_MIN_PULSE_US +
+         ((static_cast<uint32_t>(SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US) * safeAngle) / 180);
+}
+
+void writeDoorServoAngle(uint8_t angleDeg) {
+  const uint16_t pulseUs = angleToPulseUs(angleDeg);
+  const uint32_t duty = (static_cast<uint32_t>(pulseUs) * SERVO_MAX_DUTY) / SERVO_PERIOD_US;
+  ledcWrite(SERVO_PWM_CHANNEL, duty);
+}
+
+uint8_t doorServoAngleForState(DoorLockState nextState) {
+  switch (nextState) {
+    case DoorLockState::Locked:
+    case DoorLockState::Locking:
+      return SERVO_LOCK_CLOSED_ANGLE;
+    case DoorLockState::Unlocked:
+    case DoorLockState::Unlocking:
+      return SERVO_LOCK_OPEN_ANGLE;
+    case DoorLockState::LockError:
+      return SERVO_LOCK_CLOSED_ANGLE;
+  }
+
+  return SERVO_LOCK_CLOSED_ANGLE;
+}
+
+void printDoorServoState(DoorLockState currentState, uint8_t angleDeg) {
+  Serial.print(F("ACTUADOR SERVO: estado="));
+  Serial.print(doorLockStateToText(currentState));
+  Serial.print(F(", angulo="));
+  Serial.print(angleDeg);
+  Serial.println(F(" deg"));
 }
 
 void setDoorLockState(DoorLockState nextState) {
@@ -23,9 +60,9 @@ void setDoorLockState(DoorLockState nextState) {
 
   state.doorLockState = nextState;
   doorTransitionStartedMs = millis();
-  Serial.print(F("ACTUADOR SERVO: estado="));
-  Serial.print(doorLockStateToText(state.doorLockState));
-  Serial.println(F(" (simulado)"));
+  const uint8_t angleDeg = doorServoAngleForState(state.doorLockState);
+  writeDoorServoAngle(angleDeg);
+  printDoorServoState(state.doorLockState, angleDeg);
 }
 
 void updateDoorTransition(uint32_t now) {
@@ -33,18 +70,15 @@ void updateDoorTransition(uint32_t now) {
       now - doorTransitionStartedMs >= DOOR_LOCK_SIMULATION_MS) {
     state.doorLockState = DoorLockState::Unlocked;
     doorUnlockExpiresMs = now + DOOR_UNLOCK_WINDOW_MS;
-    Serial.print(F("ACTUADOR SERVO: estado="));
-    Serial.print(doorLockStateToText(state.doorLockState));
-    Serial.println(F(" (ventana de acceso activa)"));
+    printDoorServoState(state.doorLockState, doorServoAngleForState(state.doorLockState));
+    Serial.println(F("SEGURIDAD: ventana de acceso activa"));
   }
 
   if (state.doorLockState == DoorLockState::Locking &&
       now - doorTransitionStartedMs >= DOOR_LOCK_SIMULATION_MS) {
     state.doorLockState = DoorLockState::Locked;
     doorUnlockExpiresMs = 0;
-    Serial.print(F("ACTUADOR SERVO: estado="));
-    Serial.print(doorLockStateToText(state.doorLockState));
-    Serial.println(F(" (simulado)"));
+    printDoorServoState(state.doorLockState, doorServoAngleForState(state.doorLockState));
   }
 }
 
@@ -144,13 +178,16 @@ void printFanChangeIfNeeded() {
 void initActuators() {
   state = ActuatorState();
   state.controlMode = getActiveControlMode();
+  state.simulated = false;
   lastPrintedFanPowerPct = 255;
   lastPrintedFanMode = state.fanMode;
 
-  Serial.println(F("Actuadores simulados: servo de bloqueo y ventilador listos."));
-  Serial.print(F("ACTUADOR SERVO: estado="));
-  Serial.print(doorLockStateToText(state.doorLockState));
-  Serial.println(F(" (simulado)"));
+  ledcSetup(SERVO_PWM_CHANNEL, SERVO_PWM_FREQ_HZ, SERVO_PWM_RESOLUTION_BITS);
+  ledcAttachPin(PIN_SERVO_LOCK, SERVO_PWM_CHANNEL);
+  writeDoorServoAngle(SERVO_LOCK_CLOSED_ANGLE);
+
+  Serial.println(F("Actuadores listos: servo de bloqueo fisico y ventilador simulado."));
+  printDoorServoState(state.doorLockState, SERVO_LOCK_CLOSED_ANGLE);
 }
 
 void updateActuators(const SensorReadings &readings, const RackStatusDetails &details) {
